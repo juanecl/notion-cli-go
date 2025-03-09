@@ -24,8 +24,7 @@ var deleteCmd = &cobra.Command{
 			fmt.Printf("Could not convert %q to an integer: %v", args[0], err)
 			os.Exit(1)
 		}
-		notionAPIKey, pageID := utils.SetAPIConfig()
-		result := utils.DeleteToDoBlock(notionAPIKey, pageID, order)
+		result := utils.DeleteToDoBlock(order)
 		if result != nil {
 			fmt.Printf("Error removing task %d : %v\n", order, result)
 			os.Exit(1)

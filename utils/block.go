@@ -8,14 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
-
-var baseURL = "https://api.notion.com/v1"
-
-var blocks []Block
 
 type ToDo struct {
 	Checked  bool       `json:"checked"`
@@ -56,16 +52,14 @@ type Block struct {
 }
 
 type BlockList struct {
-	Object          string   `json:"object"`
-	Results         []Block  `json:"results"`
-	NextCursor      string   `json:"next_cursor"`
-	HasMore         bool     `json:"has_more"`
-	Type            string   `json:"type"`
-	Block           struct{} `json:"block"`
-	DeveloperSurvey string   `json:"developer_survey"`
+	Object     string  `json:"object"`
+	Results    []Block `json:"results"`
+	NextCursor string  `json:"next_cursor"`
+	HasMore    bool    `json:"has_more"`
 }
 
-func GetBlocks(notionAPIKey, pageID string) ([]Block, error) {
+func GetBlocks() ([]Block, error) {
+	api_key, pageID, baseURL := SetAPIConfig()
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", baseURL+"/blocks/"+pageID+"/children", nil)
 	if err != nil {
@@ -74,7 +68,7 @@ func GetBlocks(notionAPIKey, pageID string) ([]Block, error) {
 
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Notion-Version", "2022-06-28")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -98,8 +92,8 @@ func GetBlocks(notionAPIKey, pageID string) ([]Block, error) {
 	return blocks, nil
 }
 
-func GetToDoBlocks(notionAPIKey, blockID string, localTimezone *time.Location) ([]string, error) {
-	blocks, err := GetBlocks(notionAPIKey, blockID)
+func GetToDoBlocks(localTimezone *time.Location) ([]string, error) {
+	blocks, err := GetBlocks()
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +120,8 @@ func GetToDoBlocks(notionAPIKey, blockID string, localTimezone *time.Location) (
 	return todoBlocks, nil
 }
 
-func AddNewToDoItem(notionAPIKey, pageID, text string) error {
+func AddNewToDoItem(text string) error {
+	api_key, pageID, baseURL := SetAPIConfig()
 	client := &http.Client{}
 	reqBody, err := json.Marshal(map[string]interface{}{
 		"children": []map[string]interface{}{
@@ -157,7 +152,7 @@ func AddNewToDoItem(notionAPIKey, pageID, text string) error {
 
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	req.Header.Add("Notion-Version", "2022-06-28")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -166,17 +161,18 @@ func AddNewToDoItem(notionAPIKey, pageID, text string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected status code: %d, message: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil
 }
 
-func GetBlockID(notionAPIKey, pageID string, order int) (string, error) {
+func GetBlockID(order int) (string, error) {
 	if order < 1 {
 		return "", fmt.Errorf("order must be greater than 0")
 	}
+	api_key, pageID, baseURL := SetAPIConfig()
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", baseURL+"/blocks/"+pageID+"/children", nil)
 	if err != nil {
@@ -185,7 +181,7 @@ func GetBlockID(notionAPIKey, pageID string, order int) (string, error) {
 
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("Notion-Version", "2022-06-28")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -207,12 +203,13 @@ func GetBlockID(notionAPIKey, pageID string, order int) (string, error) {
 
 }
 
-func MarkToDoBlockChecked(notionAPIKey, pageID string, order int) error {
+func MarkToDoBlockChecked(order int) error {
 
-	blockID, err := GetBlockID(notionAPIKey, pageID, order)
+	blockID, err := GetBlockID(order)
 	if err != nil {
 		return err
 	}
+	api_key, _, baseURL := SetAPIConfig()
 	client := &http.Client{}
 	reqBody, err := json.Marshal(map[string]interface{}{
 		"to_do": map[string]interface{}{
@@ -230,7 +227,7 @@ func MarkToDoBlockChecked(notionAPIKey, pageID string, order int) error {
 
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	req.Header.Add("Notion-Version", "2022-06-28")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 
@@ -246,9 +243,9 @@ func MarkToDoBlockChecked(notionAPIKey, pageID string, order int) error {
 	return nil
 }
 
-func MarkToDoBlockUnChecked(notionAPIKey, pageID string, order int) error {
-
-	blockID, err := GetBlockID(notionAPIKey, pageID, order)
+func MarkToDoBlockUnChecked(order int) error {
+	api_key, _, baseURL := SetAPIConfig()
+	blockID, err := GetBlockID(order)
 	if err != nil {
 		return err
 	}
@@ -269,7 +266,7 @@ func MarkToDoBlockUnChecked(notionAPIKey, pageID string, order int) error {
 
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	req.Header.Add("Notion-Version", "2022-06-28")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 
@@ -285,8 +282,9 @@ func MarkToDoBlockUnChecked(notionAPIKey, pageID string, order int) error {
 	return nil
 }
 
-func DeleteToDoBlock(notionAPIKey, pageID string, order int) error {
-	blockID, err := GetBlockID(notionAPIKey, pageID, order)
+func DeleteToDoBlock(order int) error {
+	api_key, _, baseURL := SetAPIConfig()
+	blockID, err := GetBlockID(order)
 	if err != nil {
 		return err
 	}
@@ -298,7 +296,7 @@ func DeleteToDoBlock(notionAPIKey, pageID string, order int) error {
 
 	req.Header.Add("Notion-Version", "2022-06-28")
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("Authorization", "Bearer "+notionAPIKey)
+	req.Header.Set("Authorization", "Bearer "+api_key)
 
 	resp, err := client.Do(req)
 	if err != nil {

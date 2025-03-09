@@ -15,8 +15,7 @@ var addCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		text := args[0]
-		notionAPIKey, pageID := utils.SetAPIConfig()
-		result := utils.AddNewToDoItem(notionAPIKey, pageID, text)
+		result := utils.AddNewToDoItem(text)
 		if result != nil {
 			fmt.Printf("Error adding new task: %s\n", result)
 			os.Exit(1)

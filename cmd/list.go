@@ -18,14 +18,13 @@ var listCmd = &cobra.Command{
 	Short: "List all tasks",
 	Long:  `List all tasks in the Notion page`,
 	Run: func(cmd *cobra.Command, args []string) {
-		notionAPIKey, pageID := utils.SetAPIConfig()
 		localTimezone, err := utils.GetLocalTimeZone()
 		brightWhite := color.New(color.FgHiWhite).SprintFunc()
 		if err != nil {
 			fmt.Println("Error getting the local time zone: ", err)
 			os.Exit(1)
 		}
-		blocks, err := utils.GetToDoBlocks(notionAPIKey, pageID, localTimezone)
+		blocks, err := utils.GetToDoBlocks(localTimezone)
 		if err != nil {
 			fmt.Println("Error getting blocks from the pageID: ", err)
 

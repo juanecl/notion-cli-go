@@ -24,8 +24,7 @@ var uncheckCmd = &cobra.Command{
 			fmt.Printf("Could not convert %q to an integer: %v", args[0], err)
 			os.Exit(1)
 		}
-		notionAPIKey, pageID := utils.SetAPIConfig()
-		result := utils.MarkToDoBlockUnChecked(notionAPIKey, pageID, order)
+		result := utils.MarkToDoBlockUnChecked(order)
 		if result != nil {
 			fmt.Printf("Error marking task %d as incomplete: %v\n", order, result)
 			os.Exit(1)
