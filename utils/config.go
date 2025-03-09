@@ -9,7 +9,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func SetAPIConfig() (string, string) {
+func SetAPIConfig() (string, string, string) {
+	var baseURL = "https://api.notion.com/v1"
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Println("Error getting home directory: ", err)
@@ -35,7 +36,7 @@ func SetAPIConfig() (string, string) {
 		}
 	}
 
-	notionAPIKey, ok := os.LookupEnv("NOTION_API_KEY")
+	api_key, ok := os.LookupEnv("NOTION_API_KEY")
 	if !ok {
 		fmt.Println("NOTION_API_KEY environment variable not found")
 		os.Exit(1)
@@ -45,7 +46,7 @@ func SetAPIConfig() (string, string) {
 		fmt.Println("NOTION_PAGE_ID environment variable not found")
 		os.Exit(1)
 	}
-	return notionAPIKey, pageID
+	return api_key, pageID, baseURL
 }
 
 func GetLocalTimeZone() (*time.Location, error) {
